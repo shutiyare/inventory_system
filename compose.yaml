@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: inventory_postgres
+    environment:
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: shutiye
+      POSTGRES_PASSWORD: carfaaye143
+    ports:
+      - "5434:5432"  # Host:Container
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shutiye -d inventory_db"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    networks:
+      - inventory_network
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventory_app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/inventory_db
+      SPRING_DATASOURCE_USERNAME: shutiye
+      SPRING_DATASOURCE_PASSWORD: carfaaye143
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - inventory_network
+    restart: unless-stopped
+
+networks:
+  inventory_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
