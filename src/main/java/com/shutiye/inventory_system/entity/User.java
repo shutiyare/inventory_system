@@ -4,21 +4,26 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
-import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
+/**
+ * User entity representing system users with role-based access control.
+ * Users can have multiple roles, and roles determine their permissions and menu access.
+ * Extends BaseEntity for common auditing fields.
+ */
 @Entity
 @Table(name = "users")
 @Data
+@EqualsAndHashCode(callSuper = true, exclude = {"roles"})
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class User {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+public class User extends BaseEntity {
 
     @Column(nullable = false, unique = true, length = 100)
     private String username;
@@ -26,37 +31,26 @@ public class User {
     @Column(nullable = false, length = 255)
     private String email;
 
-    @Column(nullable = false, length = 100)
-    private String firstName;
-
-    @Column(nullable = false, length = 100)
-    private String lastName;
+    @Column(nullable = false, length = 200)
+    private String fullName;
 
     @Column(nullable = false)
     private String password;
 
-    @Column(length = 20)
-    private String phoneNumber;
-
     @Column(nullable = false)
-    @Builder.Default
     private Boolean active = true;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+    /**
+     * Many-to-Many relationship with Role entity.
+     * Using EAGER fetch type as specified in requirements for user.roles.
+     * This allows roles to be loaded immediately when user is fetched.
+     */
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id")
+    )
+    private Set<Role> roles = new HashSet<>();
 }
 
